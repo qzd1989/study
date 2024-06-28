@@ -33,6 +33,7 @@ impl Executor {
         }
     }
 
+    //generate thread
     fn thread(event_call_back: Weak<EventCallBack>) -> JoinHandle<()> {
         spawn(move || loop {
             println!(
@@ -50,7 +51,7 @@ impl Executor {
                     for callback in callbacks.iter() {
                         match callback.upgrade() {
                             Some(_) => println!("get callback"),
-                            None => println!("get none"),
+                            None => println!("get none"), //why I get none?
                         }
                     }
                 }
@@ -59,7 +60,7 @@ impl Executor {
         })
     }
 
-    //push Fn() to EventCallBack.callbacks
+    //push new Fn() into EventCallBack.callbacks directly
     fn push<T: Fn() + Send + Sync + 'static>(&mut self, callback: T) {
         let callback_arc = Arc::new(callback);
         if let Ok(mut tasks) = self.event_callback.callbacks.lock() {
@@ -71,9 +72,12 @@ impl Executor {
 
 fn main() {
     let mut executor = Executor::new();
+
+    //after 3 seconds, I push a callback into the Vec, I hope the handle of Executor will run it automatically.
     thread::sleep(Duration::from_secs(3));
     executor.push(|| {
         println!("hello world!");
     });
+
     thread::sleep(Duration::from_secs(3600));
 }
