@@ -60,9 +60,8 @@ impl Executor {
     //push new Fn() into EventCallBack.callbacks directly
     fn push<T: Fn() + Send + Sync + 'static>(&mut self, callback: T) {
         let callback_arc = Arc::new(callback);
-        let callback_clone = Arc::clone(&callback_arc);
         if let Ok(mut tasks) = self.event_callback.callbacks.lock() {
-            tasks.push(callback_clone);
+            tasks.push(callback_arc);
         }
     }
 }
