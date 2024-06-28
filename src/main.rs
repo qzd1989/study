@@ -62,7 +62,6 @@ impl Executor {
         let callback_arc = Arc::new(callback);
         let callback_clone = Arc::clone(&callback_arc);
         if let Ok(mut tasks) = self.event_callback.callbacks.lock() {
-            // let new_callback = Arc::downgrade(&callback_arc);
             tasks.push(callback_clone);
         }
     }
@@ -71,11 +70,11 @@ impl Executor {
 fn main() {
     let mut executor = Executor::new();
 
-    //after 3 seconds, I push a callback into the Vec, I hope the handle of Executor will run it automatically.
     thread::sleep(Duration::from_secs(3));
     executor.push(|| {
         println!("hello world!");
     });
+
     thread::sleep(Duration::from_secs(3));
     executor.push(|| {
         println!("hello world 2!");
