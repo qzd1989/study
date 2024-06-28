@@ -7,7 +7,7 @@ use std::{
 type DiyFn = dyn Fn() + Sync + Send + 'static;
 
 struct EventCallBack {
-    pub callbacks: Mutex<Vec<Weak<DiyFn>>>,
+    pub callbacks: Mutex<Vec<Arc<DiyFn>>>,
 }
 
 impl EventCallBack {
@@ -49,10 +49,7 @@ impl Executor {
             if let Some(event_call_back) = event_call_back.upgrade() {
                 if let Ok(callbacks) = event_call_back.callbacks.lock() {
                     for callback in callbacks.iter() {
-                        match callback.upgrade() {
-                            Some(_) => println!("get callback"),
-                            None => println!("get none"), //why I get none?
-                        }
+                        callback();
                     }
                 }
             }
@@ -63,9 +60,10 @@ impl Executor {
     //push new Fn() into EventCallBack.callbacks directly
     fn push<T: Fn() + Send + Sync + 'static>(&mut self, callback: T) {
         let callback_arc = Arc::new(callback);
+        let callback_clone = Arc::clone(&callback_arc);
         if let Ok(mut tasks) = self.event_callback.callbacks.lock() {
-            let new_callback = Arc::downgrade(&callback_arc);
-            tasks.push(new_callback);
+            // let new_callback = Arc::downgrade(&callback_arc);
+            tasks.push(callback_clone);
         }
     }
 }
@@ -77,6 +75,10 @@ fn main() {
     thread::sleep(Duration::from_secs(3));
     executor.push(|| {
         println!("hello world!");
+    });
+    thread::sleep(Duration::from_secs(3));
+    executor.push(|| {
+        println!("hello world 2!");
     });
 
     thread::sleep(Duration::from_secs(3600));
