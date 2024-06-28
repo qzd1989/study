@@ -2,7 +2,7 @@ use std::{
     cell::RefCell,
     rc::Rc,
     sync::{Arc, Mutex, Weak},
-    thread::{self, spawn, JoinHandle},
+    thread::{self, sleep, spawn, JoinHandle},
     time::Duration,
 };
 
@@ -70,30 +70,42 @@ impl Executor {
 
 #[derive(Debug)]
 struct MyStruct {
-    field1: *mut String,
-    field2: *mut String,
+    names: Arc<Mutex<Vec<String>>>,
+    _thread: Option<JoinHandle<()>>,
 }
 
 impl MyStruct {
-    fn new(shared_string: &mut String) -> MyStruct {
-        MyStruct {
-            field1: shared_string as *mut String,
-            field2: shared_string as *mut String,
-        }
+    fn new() -> Self {
+        let names = Arc::new(Mutex::new(Vec::new()));
+        let my_struct = Self {
+            names,
+            _thread: None,
+        };
+        let _thread = my_struct.thread(&my_struct.names);
+        my_struct
+    }
+    fn thread(&self, names: &Arc<Mutex<Vec<String>>>) -> JoinHandle<()> {
+        let names = Arc::clone(names);
+        spawn(move || loop {
+            if let Ok(names) = names.lock() {
+                for name in names.iter() {
+                    println!("names contain: {}", name);
+                }
+            }
+            sleep(Duration::from_secs(1));
+        })
     }
 }
 
 fn main() {
-    let mut shared_string = String::from("Hello, Rust!");
+    //version 1 (String)
+    let my = MyStruct::new();
+    thread::sleep(Duration::from_secs(3));
+    my.names.lock().unwrap().push("zhangsan".to_string());
+    thread::sleep(Duration::from_secs(3));
+    my.names.lock().unwrap().push("lisi".to_string());
 
-    let my_struct = MyStruct::new(&mut shared_string);
-
-    unsafe {
-        *my_struct.field1 = String::from("How are you?");
-        let b = &*my_struct.field2;
-        dbg!(b);
-    }
-
+    //version 2 (Fn())
     let mut executor = Executor::new();
 
     thread::sleep(Duration::from_secs(3));
