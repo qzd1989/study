@@ -1,4 +1,6 @@
 use std::{
+    cell::RefCell,
+    rc::Rc,
     sync::{Arc, Mutex, Weak},
     thread::{self, spawn, JoinHandle},
     time::Duration,
@@ -66,7 +68,32 @@ impl Executor {
     }
 }
 
+#[derive(Debug)]
+struct MyStruct {
+    field1: *mut String,
+    field2: *mut String,
+}
+
+impl MyStruct {
+    fn new(shared_string: &mut String) -> MyStruct {
+        MyStruct {
+            field1: shared_string as *mut String,
+            field2: shared_string as *mut String,
+        }
+    }
+}
+
 fn main() {
+    let mut shared_string = String::from("Hello, Rust!");
+
+    let my_struct = MyStruct::new(&mut shared_string);
+
+    unsafe {
+        *my_struct.field1 = String::from("How are you?");
+        let b = &*my_struct.field2;
+        dbg!(b);
+    }
+
     let mut executor = Executor::new();
 
     thread::sleep(Duration::from_secs(3));
